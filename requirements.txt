@@ -1,0 +1,20 @@
+# Core broker + data
+alpaca-py>=0.30.0
+
+# Data handling
+pandas>=2.0
+numpy>=1.24
+
+# Backtesting (simple, beginner-friendly)
+backtesting>=0.3.3
+
+# News sentiment (FinBERT). transformers pulls in torch.
+# Heavy install (~a few hundred MB); optional until you use the sentiment module.
+transformers>=4.40
+torch>=2.2
+
+# Config / env
+python-dotenv>=1.0
+
+# Plotting / notebooks (optional)
+matplotlib>=3.7
