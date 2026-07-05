@@ -6,7 +6,7 @@ without the SDK installed or credentials configured.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
@@ -26,15 +26,22 @@ def get_price_history(
     start: datetime,
     end: datetime | None = None,
     timeframe: str = "1Day",
+    feed: str = "iex",
     settings: Settings | None = None,
 ) -> pd.DataFrame:
     """Return a DataFrame of OHLCV bars indexed by timestamp.
 
     Columns: Open, High, Low, Close, Volume  (capitalized for Backtesting.py).
+
+    `feed` defaults to "iex". Alpaca's free data plan cannot query the consolidated
+    "sip" feed (or the last 15 minutes of it) and returns HTTP 403 if you try, so IEX
+    is the correct default for a free account. IEX is a single-exchange feed — fine
+    for daily-bar research; upgrade the data plan later if you need full-tape data.
     """
     settings = settings or load_settings()
     _require_configured(settings)
 
+    from alpaca.data.enums import DataFeed
     from alpaca.data.historical import StockHistoricalDataClient
     from alpaca.data.requests import StockBarsRequest
     from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
@@ -46,13 +53,18 @@ def get_price_history(
         "15Min": TimeFrame(15, TimeFrameUnit.Minute),
     }
     tf = tf_map.get(timeframe, TimeFrame.Day)
+    feed_enum = DataFeed.SIP if feed.lower() == "sip" else DataFeed.IEX
+
+    # The free plan also can't read the most recent 15 min; pull `end` back to be safe.
+    default_end = datetime.now(timezone.utc) - timedelta(minutes=16)
 
     client = StockHistoricalDataClient(settings.api_key, settings.secret_key)
     req = StockBarsRequest(
         symbol_or_symbols=symbol,
         timeframe=tf,
         start=start,
-        end=end or datetime.now(timezone.utc),
+        end=end or default_end,
+        feed=feed_enum,
     )
     bars = client.get_stock_bars(req).df
     if bars.empty:
