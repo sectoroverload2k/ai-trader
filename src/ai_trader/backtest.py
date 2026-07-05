@@ -143,6 +143,7 @@ def walk_forward(
     size = n // n_windows if n_windows else n
 
     results: list[BacktestResult] = []
+    benchmarks: list[float] = []  # one common buy-and-hold return per window
     for i in range(n_windows):
         start = i * size
         end = n if i == n_windows - 1 else (i + 1) * size
@@ -155,18 +156,26 @@ def walk_forward(
             # A window where the strategy can't run (e.g. no valid bars) is skipped,
             # not fatal — the other windows still tell us something.
             continue
+        # Strategy-independent benchmark over the FULL window. This is the honest
+        # cross-strategy reference: Backtesting.py's own benchmark is measured over a
+        # per-strategy trimmed window (it drops indicator-warmup bars), so it differs
+        # between strategies with different lookbacks. Since a strategy holds cash
+        # during warmup (0% return), its full-window return equals its active-period
+        # return, so comparing to a full-window buy-and-hold is apples-to-apples.
+        close = window["Close"]
+        benchmarks.append(float((close.iloc[-1] / close.iloc[0] - 1) * 100))
 
     if not results:
         return WalkForwardResult(name, 0, 0, float("nan"), float("nan"), float("nan"), [])
 
-    beating = sum(1 for r in results if r.beats_benchmark)
+    beating = sum(1 for r, b in zip(results, benchmarks) if r.strategy_return_pct > b)
     mean = lambda xs: sum(xs) / len(xs)
     return WalkForwardResult(
         strategy_name=name,
         n_windows=len(results),
         windows_beating_benchmark=beating,
         mean_strategy_return_pct=mean([r.strategy_return_pct for r in results]),
-        mean_benchmark_return_pct=mean([r.buy_hold_return_pct for r in results]),
+        mean_benchmark_return_pct=mean(benchmarks),
         mean_sharpe=mean([r.sharpe for r in results]),
         per_window=results,
     )
