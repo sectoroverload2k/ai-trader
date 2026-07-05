@@ -14,6 +14,7 @@ on:
           - backtest     # run the momentum baseline vs buy-and-hold
           - sentiment    # does news sentiment predict next-day moves? (slow: installs FinBERT)
           - combined     # sentiment-gated vs price-only momentum, out-of-sample (slow: FinBERT)
+          - bakeoff      # rank all strategies via walk-forward vs buy-and-hold
 
 jobs:
   run:
@@ -52,3 +53,7 @@ jobs:
       - name: Run combined strategy comparison
         if: ${{ inputs.task == 'combined' }}
         run: python examples/combined_strategy.py
+
+      - name: Run strategy bake-off
+        if: ${{ inputs.task == 'bakeoff' }}
+        run: python examples/strategy_bakeoff.py

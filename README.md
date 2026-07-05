@@ -22,13 +22,18 @@ src/ai_trader/
   sentiment.py              Score news sentiment with FinBERT (local, free)
   backtest.py               Backtest harness — ALWAYS compares vs. buy & hold
   experiment.py             Does news sentiment predict NEXT day's move? (no look-ahead)
-  strategies/momentum.py    Simple moving-average-crossover baseline (no ML)
+  strategies/momentum.py    Momentum: moving-average crossover (trend-following)
   strategies/sentiment_momentum.py  Momentum, but only go long when sentiment isn't negative
+  strategies/mean_reversion.py  RSI and Bollinger-band mean-reversion strategies
+  strategies/breakout.py    Donchian-channel breakout ("Turtle" style trend-following)
+  strategies/buy_and_hold.py    Buy-and-hold as a first-class competitor
+  strategies/indicators.py  Shared indicators (SMA, RSI, Bollinger, Donchian)
 examples/
   hello_alpaca.py           Smoke test: connect, pull prices + news, print
   run_backtest.py           Run the momentum baseline and compare to buy & hold
   sentiment_experiment.py   Measure sentiment vs. next-day returns for a few tickers
   combined_strategy.py      Sentiment-gated vs price-only momentum, out-of-sample
+  strategy_bakeoff.py       Rank ALL strategies via walk-forward vs buy-and-hold
 tests/                      Offline unit tests (no network/keys needed) — run: pytest
 ```
 
@@ -81,9 +86,10 @@ orders there. Read-only checks (prices/news/backtests) run regardless.
 4. ✅ Sentiment scoring (FinBERT)
 5. ✅ Sentiment-vs-next-day-return experiment (`experiment.py`) + offline test suite
 6. ✅ Combined strategy: sentiment-gated momentum, compared to price-only on a held-out window
-7. ⬜ Walk-forward evaluation across many windows (one held-out slice is only a hint)
-8. ⬜ Live paper-trading loop on Alpaca
-9. ⬜ Risk layer: position sizing + stop-losses
+7. ✅ Strategy library (momentum, breakout, RSI/Bollinger mean reversion, buy & hold)
+8. ✅ Walk-forward evaluation across many windows + bake-off leaderboard
+9. ⬜ Live paper-trading loop on Alpaca
+10. ⬜ Risk layer: position sizing + stop-losses
 
 **Golden rule:** build the honest measurement before the model. Beat buy-and-hold out-of-sample,
 or it's noise.

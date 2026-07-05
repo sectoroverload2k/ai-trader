@@ -93,3 +93,80 @@ def compare_strategies(
     glance whether any strategy actually beats simply holding the stock.
     """
     return {name: run_backtest(price_history, strat, **kwargs) for name, strat in strategies.items()}
+
+
+@dataclass
+class WalkForwardResult:
+    strategy_name: str
+    n_windows: int
+    windows_beating_benchmark: int
+    mean_strategy_return_pct: float
+    mean_benchmark_return_pct: float
+    mean_sharpe: float
+    per_window: list  # list[BacktestResult]
+
+    @property
+    def beat_rate(self) -> float:
+        """Fraction of windows where the strategy beat buy-and-hold (0.5 = coin flip)."""
+        return self.windows_beating_benchmark / self.n_windows if self.n_windows else float("nan")
+
+    def summary(self) -> str:
+        return (
+            f"{self.strategy_name}: beat buy-and-hold in "
+            f"{self.windows_beating_benchmark}/{self.n_windows} windows "
+            f"({self.beat_rate:.0%}); mean return {self.mean_strategy_return_pct:+.2f}% "
+            f"vs {self.mean_benchmark_return_pct:+.2f}% benchmark; "
+            f"mean Sharpe {self.mean_sharpe:.2f}"
+        )
+
+
+def walk_forward(
+    price_history: pd.DataFrame,
+    strategy,
+    n_windows: int = 5,
+    min_bars: int = 60,
+    strategy_name: str | None = None,
+    **kwargs,
+) -> WalkForwardResult:
+    """Evaluate a strategy across consecutive out-of-sample windows.
+
+    The series is cut into `n_windows` contiguous chunks and the strategy is backtested
+    on each independently. Reporting per-window results — and how often the strategy
+    beats buy-and-hold — is far more honest than a single split: one good window is
+    easy to cherry-pick, a strategy that wins most windows is harder to fake.
+
+    Windows shorter than `min_bars` (too few bars for the indicators to warm up) are
+    skipped rather than producing garbage.
+    """
+    name = strategy_name or getattr(strategy, "__name__", "strategy")
+    n = len(price_history)
+    size = n // n_windows if n_windows else n
+
+    results: list[BacktestResult] = []
+    for i in range(n_windows):
+        start = i * size
+        end = n if i == n_windows - 1 else (i + 1) * size
+        window = price_history.iloc[start:end]
+        if len(window) < min_bars:
+            continue
+        try:
+            results.append(run_backtest(window, strategy, **kwargs))
+        except Exception:
+            # A window where the strategy can't run (e.g. no valid bars) is skipped,
+            # not fatal — the other windows still tell us something.
+            continue
+
+    if not results:
+        return WalkForwardResult(name, 0, 0, float("nan"), float("nan"), float("nan"), [])
+
+    beating = sum(1 for r in results if r.beats_benchmark)
+    mean = lambda xs: sum(xs) / len(xs)
+    return WalkForwardResult(
+        strategy_name=name,
+        n_windows=len(results),
+        windows_beating_benchmark=beating,
+        mean_strategy_return_pct=mean([r.strategy_return_pct for r in results]),
+        mean_benchmark_return_pct=mean([r.buy_hold_return_pct for r in results]),
+        mean_sharpe=mean([r.sharpe for r in results]),
+        per_window=results,
+    )
