@@ -12,6 +12,7 @@ on:
         options:
           - smoke        # connect, print recent prices + news
           - backtest     # run the momentum baseline vs buy-and-hold
+          - sentiment    # does news sentiment predict next-day moves? (slow: installs FinBERT)
 
 jobs:
   run:
@@ -38,3 +39,11 @@ jobs:
       - name: Run backtest
         if: ${{ inputs.task == 'backtest' }}
         run: python examples/run_backtest.py
+
+      - name: Install sentiment dependencies (FinBERT)
+        if: ${{ inputs.task == 'sentiment' }}
+        run: pip install -r requirements-sentiment.txt
+
+      - name: Run sentiment experiment
+        if: ${{ inputs.task == 'sentiment' }}
+        run: python examples/sentiment_experiment.py

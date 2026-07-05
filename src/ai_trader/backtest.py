@@ -48,7 +48,13 @@ def run_backtest(
     if price_history.empty:
         raise ValueError("price_history is empty — fetch data first.")
 
-    bt = Backtest(price_history, strategy, cash=cash, commission=commission)
+    bt = Backtest(
+        price_history,
+        strategy,
+        cash=cash,
+        commission=commission,
+        finalize_trades=True,  # close any open position at the end so stats are complete
+    )
     stats = bt.run()
 
     strat_ret = float(stats["Return [%]"])
