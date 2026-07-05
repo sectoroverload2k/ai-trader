@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from ai_trader.backtest import walk_forward
 from ai_trader.strategies.buy_and_hold import BuyAndHold
@@ -36,6 +37,15 @@ def test_walk_forward_skips_windows_too_small_for_indicators():
     wf = walk_forward(_prices(n=100), MomentumCross, n_windows=5, min_bars=60)
     assert wf.n_windows == 0
     assert wf.per_window == []
+
+
+def test_benchmark_is_consistent_across_strategies_with_different_warmups():
+    # The common per-window benchmark must not depend on the strategy's lookback.
+    # BuyAndHold (no warmup) and MomentumCross (50-bar SMA) must see the SAME benchmark.
+    prices = _prices()
+    bh = walk_forward(prices, BuyAndHold, n_windows=6)
+    mom = walk_forward(prices, MomentumCross, n_windows=6)
+    assert bh.mean_benchmark_return_pct == pytest.approx(mom.mean_benchmark_return_pct)
 
 
 def test_buy_and_hold_return_tracks_the_benchmark():
