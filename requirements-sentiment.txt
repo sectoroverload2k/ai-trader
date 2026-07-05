@@ -1,0 +1,4 @@
+# Optional: news sentiment scoring with FinBERT. Large install (~hundreds of MB).
+#   pip install -r requirements-sentiment.txt
+transformers>=4.40
+torch>=2.2

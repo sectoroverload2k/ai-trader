@@ -29,24 +29,44 @@ examples/
 
 ## Setup
 
-1. **Get free paper-trading keys.** Sign up at <https://alpaca.markets/>, switch the dashboard to
-   **Paper Trading**, and generate API keys. Paper trading uses fake money — you cannot lose real
-   money with these keys.
+First, **get free paper-trading keys.** Sign up at <https://alpaca.markets/>, switch the dashboard
+to **Paper Trading**, and generate **Trading API** keys. Paper trading uses fake money — you cannot
+lose real money with these keys. You need three values:
 
-2. **Install and configure:**
-   ```bash
-   python -m venv .venv && source .venv/bin/activate
-   pip install -r requirements.txt
-   cp .env.example .env         # then edit .env and paste your paper keys
-   ```
-   (FinBERT/torch in `requirements.txt` is a large download; you can skip it until you use the
-   sentiment module.)
+| Name | Value |
+|---|---|
+| `ALPACA_API_KEY` | your paper API key id |
+| `ALPACA_API_SECRET` | your paper secret key |
+| `ALPACA_API_ENDPOINT` | `https://paper-api.alpaca.markets` |
 
-3. **Confirm it works:**
-   ```bash
-   python examples/hello_alpaca.py     # prints recent AAPL bars + headlines
-   python examples/run_backtest.py     # backtests the momentum baseline vs. buy & hold
-   ```
+Then pick **one** way to run:
+
+### Option A — GitHub Actions (no local setup, works from a phone)
+
+1. Add the three values above as **repository secrets**
+   (repo → Settings → Secrets and variables → Actions → New repository secret).
+2. Go to the **Actions** tab → **Trade Check (paper)** → **Run workflow**, pick `smoke` (or
+   `backtest`), and run. Output appears in the run logs.
+
+> Note: GitHub Actions is great for on-demand runs (smoke test, backtests, a scheduled news scan),
+> but it is **not** meant to host an always-on live trading loop. That comes later, on a small
+> always-on machine.
+
+### Option B — your own computer
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env             # then edit .env with your paper keys
+python examples/hello_alpaca.py  # prints recent AAPL bars + headlines
+python examples/run_backtest.py  # backtests the momentum baseline vs. buy & hold
+```
+
+For the news-sentiment module, also `pip install -r requirements-sentiment.txt` (large; pulls in
+torch).
+
+**Safety:** the code treats anything other than the paper endpoint as live and refuses to place
+orders there. Read-only checks (prices/news/backtests) run regardless.
 
 ## Roadmap (see RESEARCH.md §5)
 

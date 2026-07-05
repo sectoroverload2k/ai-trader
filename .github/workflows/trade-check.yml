@@ -1,0 +1,40 @@
+name: Trade Check (paper)
+
+# Manually triggered from the GitHub UI (Actions tab -> Trade Check -> Run workflow).
+# Runs read-only checks against your Alpaca PAPER account using the repo secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "What to run"
+        type: choice
+        default: smoke
+        options:
+          - smoke        # connect, print recent prices + news
+          - backtest     # run the momentum baseline vs buy-and-hold
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+      ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
+      ALPACA_API_ENDPOINT: ${{ secrets.ALPACA_API_ENDPOINT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install core dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run smoke test
+        if: ${{ inputs.task == 'smoke' }}
+        run: python examples/hello_alpaca.py
+
+      - name: Run backtest
+        if: ${{ inputs.task == 'backtest' }}
+        run: python examples/run_backtest.py

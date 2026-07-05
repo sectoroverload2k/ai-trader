@@ -27,7 +27,8 @@ def main() -> int:
         print("No Alpaca keys found. Copy .env.example to .env and add your paper keys.")
         return 1
 
-    print(f"Mode: {'PAPER' if settings.paper else 'LIVE'} (should be PAPER)\n")
+    print(f"Mode: {'PAPER' if settings.is_paper else 'LIVE'} (should be PAPER)")
+    print(f"Endpoint: {settings.endpoint}\n")
 
     start = datetime.now(timezone.utc) - timedelta(days=30)
 
