@@ -1,0 +1,25 @@
+# Secrets — NEVER commit real keys
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.ipynb_checkpoints/
+
+# Data / model caches
+data/
+*.csv
+*.parquet
+models/
+.cache/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

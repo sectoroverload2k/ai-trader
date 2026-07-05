@@ -1,0 +1,11 @@
+# Core: broker, data, backtesting. Fast to install.
+alpaca-py>=0.30.0
+pandas>=2.0
+numpy>=1.24
+backtesting>=0.3.3
+python-dotenv>=1.0
+matplotlib>=3.7
+
+# News sentiment (FinBERT) lives in requirements-sentiment.txt — it pulls in torch
+# (a large, slow install). Install it only when you use the sentiment module:
+#   pip install -r requirements-sentiment.txt
