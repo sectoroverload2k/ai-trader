@@ -69,3 +69,27 @@ def run_backtest(
         beats_benchmark=strat_ret > bh_ret,
         raw=stats,
     )
+
+
+def split_by_fraction(
+    df: pd.DataFrame, train_frac: float = 0.7
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Chronological train/test split. The test slice is your out-of-sample window.
+
+    We never tune on the test slice — that's the whole point of holding it out.
+    """
+    if not 0 < train_frac < 1:
+        raise ValueError("train_frac must be between 0 and 1")
+    n = int(len(df) * train_frac)
+    return df.iloc[:n], df.iloc[n:]
+
+
+def compare_strategies(
+    price_history: pd.DataFrame, strategies: dict[str, object], **kwargs
+) -> dict[str, BacktestResult]:
+    """Run several strategies on the same data and return their results by name.
+
+    Every result already carries the buy-and-hold benchmark, so you can see at a
+    glance whether any strategy actually beats simply holding the stock.
+    """
+    return {name: run_backtest(price_history, strat, **kwargs) for name, strat in strategies.items()}

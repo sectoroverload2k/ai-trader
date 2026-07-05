@@ -74,6 +74,41 @@ def get_price_history(
     return bars[["Open", "High", "Low", "Close", "Volume"]]
 
 
+def _news_item_to_dict(a) -> dict:
+    """Normalize one Alpaca news article object into a plain dict."""
+    return {
+        "timestamp": getattr(a, "created_at", None),
+        "headline": getattr(a, "headline", "") or "",
+        "summary": getattr(a, "summary", "") or "",
+        "url": getattr(a, "url", "") or "",
+    }
+
+
+def _extract_news_items(resp) -> list:
+    """Pull the list of article objects out of an Alpaca NewsSet response."""
+    if hasattr(resp, "data") and isinstance(getattr(resp, "data"), dict):
+        return resp.data.get("news", [])
+    return getattr(resp, "news", []) or []
+
+
+def _paginate_news(fetch_page, max_items: int) -> list[dict]:
+    """Loop a page-fetcher until we hit `max_items` or run out of pages.
+
+    `fetch_page(page_token) -> (items: list[dict], next_token: str | None)`.
+    Pure/injectable so pagination can be unit-tested without the network.
+    """
+    out: list[dict] = []
+    token = None
+    while len(out) < max_items:
+        items, token = fetch_page(token)
+        if not items:
+            break
+        out.extend(items)
+        if not token:
+            break
+    return out[:max_items]
+
+
 def get_news(
     symbol: str,
     start: datetime,
@@ -81,7 +116,7 @@ def get_news(
     limit: int = 50,
     settings: Settings | None = None,
 ) -> list[dict]:
-    """Return a list of news items for a symbol.
+    """Return up to `limit` news items for a symbol (single page).
 
     Each item: {"timestamp", "headline", "summary", "url"}.
     Sentiment is intentionally NOT computed here — see sentiment.py. Keeping fetch
@@ -100,17 +135,36 @@ def get_news(
         end=end or datetime.now(timezone.utc),
         limit=limit,
     )
-    news = client.get_news(req)
-    items = getattr(news, "data", {}).get("news", []) if hasattr(news, "data") else news.news
+    return [_news_item_to_dict(a) for a in _extract_news_items(client.get_news(req))]
 
-    out: list[dict] = []
-    for a in items:
-        out.append(
-            {
-                "timestamp": getattr(a, "created_at", None),
-                "headline": getattr(a, "headline", "") or "",
-                "summary": getattr(a, "summary", "") or "",
-                "url": getattr(a, "url", "") or "",
-            }
+
+def get_all_news(
+    symbol: str,
+    start: datetime,
+    end: datetime | None = None,
+    max_items: int = 1000,
+    settings: Settings | None = None,
+) -> list[dict]:
+    """Page through Alpaca's news API to gather up to `max_items` articles.
+
+    The API returns 50 per page; this follows `next_page_token` until it runs out
+    or `max_items` is reached — needed to get a sample large enough to measure.
+    """
+    settings = settings or load_settings()
+    _require_configured(settings)
+
+    from alpaca.data.historical.news import NewsClient
+    from alpaca.data.requests import NewsRequest
+
+    client = NewsClient(settings.api_key, settings.secret_key)
+    end = end or datetime.now(timezone.utc)
+
+    def fetch_page(page_token):
+        req = NewsRequest(
+            symbols=symbol, start=start, end=end, limit=50, page_token=page_token
         )
-    return out
+        resp = client.get_news(req)
+        items = [_news_item_to_dict(a) for a in _extract_news_items(resp)]
+        return items, getattr(resp, "next_page_token", None)
+
+    return _paginate_news(fetch_page, max_items)

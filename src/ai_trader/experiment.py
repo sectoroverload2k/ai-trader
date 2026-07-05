@@ -50,6 +50,23 @@ def daily_sentiment(
     return out
 
 
+def attach_sentiment(
+    prices: pd.DataFrame, daily_sent: pd.Series, fill: float = 0.0
+) -> pd.DataFrame:
+    """Add a `Sentiment` column to an OHLCV frame, aligned by date.
+
+    Days with no news get `fill` (0.0 = neutral). The result is ready to hand to a
+    Backtesting.py strategy that reads `self.data.Sentiment`. No look-ahead is
+    introduced here: Backtesting.py fills orders on the NEXT bar, so a strategy
+    reading Sentiment at bar D can only act from bar D+1 onward.
+    """
+    dates = pd.to_datetime(prices.index).date
+    values = [float(daily_sent.get(d, fill)) for d in dates]
+    out = prices.copy()
+    out["Sentiment"] = values
+    return out
+
+
 def build_dataset(prices: pd.DataFrame, daily_sent: pd.Series) -> pd.DataFrame:
     """Join daily sentiment to each day's NEXT-day close-to-close return.
 

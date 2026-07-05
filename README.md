@@ -23,10 +23,12 @@ src/ai_trader/
   backtest.py               Backtest harness — ALWAYS compares vs. buy & hold
   experiment.py             Does news sentiment predict NEXT day's move? (no look-ahead)
   strategies/momentum.py    Simple moving-average-crossover baseline (no ML)
+  strategies/sentiment_momentum.py  Momentum, but only go long when sentiment isn't negative
 examples/
   hello_alpaca.py           Smoke test: connect, pull prices + news, print
   run_backtest.py           Run the momentum baseline and compare to buy & hold
   sentiment_experiment.py   Measure sentiment vs. next-day returns for a few tickers
+  combined_strategy.py      Sentiment-gated vs price-only momentum, out-of-sample
 tests/                      Offline unit tests (no network/keys needed) — run: pytest
 ```
 
@@ -78,9 +80,10 @@ orders there. Read-only checks (prices/news/backtests) run regardless.
 3. ✅ Baseline momentum strategy (no ML)
 4. ✅ Sentiment scoring (FinBERT)
 5. ✅ Sentiment-vs-next-day-return experiment (`experiment.py`) + offline test suite
-6. ⬜ Combined strategy: add sentiment as a signal, measure if it beats price-only *out-of-sample*
-7. ⬜ Live paper-trading loop on Alpaca
-8. ⬜ Risk layer: position sizing + stop-losses
+6. ✅ Combined strategy: sentiment-gated momentum, compared to price-only on a held-out window
+7. ⬜ Walk-forward evaluation across many windows (one held-out slice is only a hint)
+8. ⬜ Live paper-trading loop on Alpaca
+9. ⬜ Risk layer: position sizing + stop-losses
 
 **Golden rule:** build the honest measurement before the model. Beat buy-and-hold out-of-sample,
 or it's noise.

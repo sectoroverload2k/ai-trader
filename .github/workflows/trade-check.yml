@@ -13,6 +13,7 @@ on:
           - smoke        # connect, print recent prices + news
           - backtest     # run the momentum baseline vs buy-and-hold
           - sentiment    # does news sentiment predict next-day moves? (slow: installs FinBERT)
+          - combined     # sentiment-gated vs price-only momentum, out-of-sample (slow: FinBERT)
 
 jobs:
   run:
@@ -41,9 +42,13 @@ jobs:
         run: python examples/run_backtest.py
 
       - name: Install sentiment dependencies (FinBERT)
-        if: ${{ inputs.task == 'sentiment' }}
+        if: ${{ inputs.task == 'sentiment' || inputs.task == 'combined' }}
         run: pip install -r requirements-sentiment.txt
 
       - name: Run sentiment experiment
         if: ${{ inputs.task == 'sentiment' }}
         run: python examples/sentiment_experiment.py
+
+      - name: Run combined strategy comparison
+        if: ${{ inputs.task == 'combined' }}
+        run: python examples/combined_strategy.py
